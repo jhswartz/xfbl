@@ -1,0 +1,86 @@
+xfbl 0.1
+
+
+INTRODUCTION
+
+    xfbl is a small bootloader for Linux/x86 on a floppy disk.
+
+
+DISK LAYOUT
+
+    LBA    Component
+
+     0     boot
+     1     cmdline
+     2     kernel
+    ...    initramfs
+    ...    free space
+
+
+BOOT OVERVIEW
+
+    Enable the A20 line via BIOS or i8042.
+    Enter unreal mode.
+    Load the kernel command line from LBA 1 to 0x7e00.
+    Fetch what should be kernel setup code starting at LBA 2.
+    Check if what should be the kernel header appears to be valid.
+    Tell the kernel about the environment and command line.
+    Load the rest of the kernel at 0x00100000.
+    Load the initramfs at the address described in "config.s".
+    Start Linux.
+
+
+USAGE
+
+    Create the symbolic link, "ext/kernel".
+    Create the symbolic link, "ext/initramfs".
+    Populate "ext/cmdline".
+
+
+INITRAMFS
+
+    By default, the load address and size of initramfs are calculated
+    prior to assembly by the script, "misc/generate-config".
+
+    If you would prefer to define these variables manually, create
+    "src/config.s" and define the variables INITRAMFS_ADDRESS and
+    INITRAMFS_SIZE with your desired values. Then adjust the Makefile
+    to avoid regeneration of "src/config.s".
+
+
+FLOPPY DISTRIBUTION
+
+    For a 1.44MB distribution:
+        make dist
+
+    For a 2.88MB distribution:
+        make SIZE=2880k dist
+
+
+ISO9660 DISTRIBUTION
+
+    Populate the "iso" directory with your desired image content, or
+    replace the directory with a symbolic link to suitable directory
+    elsewhere.
+
+    For a bootable ISO9660 image based on a 1.44MB distribution:
+        make iso
+
+    For a bootable ISO9660 image based on a 2.88MB distribution:
+        make SIZE=2880k iso
+
+
+OUTPUT
+
+    Character   Explanation
+
+        .       Sector Read OK
+        ?       Sector Read Retry
+        3       Sector Read Failed
+        2       Old Protocol Version
+        1       Bad Kernel Magic
+
+
+SUGGESTED READING
+
+    The Linux/x86 Boot Protocol
