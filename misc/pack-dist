@@ -1,0 +1,68 @@
+#!/bin/sh
+
+set -e
+
+SECTOR_SIZE=512
+OFFSET=0
+
+usage()
+{
+	echo "usage: pack BOOT CMDLINE KERNEL RAMDISK OUTPUT SIZE"
+}
+
+calculate_file_sectors()
+{
+	file=$1
+	size=$(stat -c '%s' -L "$file")
+	count=$(($size / $SECTOR_SIZE))
+	remainder=$(($size % $SECTOR_SIZE))
+
+	if [ $remainder -gt 0 ]
+	then
+		count=$((count + 1))
+	fi
+
+	if [ $count -eq 0 ]
+	then
+		count=1
+	fi
+
+	echo $count
+}
+
+pack()
+{
+	input=$1
+	output=$2
+
+	count=$(calculate_file_sectors "$input")
+	dd if="$input" of="$output" seek=$OFFSET bs=$SECTOR_SIZE count=$count
+	printf "\t$OFFSET $count $input\n\n"
+
+	OFFSET=$((OFFSET + count))
+}
+
+main()
+{
+	if [ $# -ne 6 ]
+	then
+		usage
+		exit 2 
+	fi
+
+	boot=$1
+	cmdline=$2
+	kernel=$3
+	ramdisk=$4
+	output=$5
+	size=$6
+
+	pack "$boot" "$output"
+	pack "$cmdline" "$output"
+	pack "$kernel" "$output"
+	pack "$ramdisk" "$output"
+
+	truncate -s "$size" "$output"
+}
+
+main "$@"

@@ -1,0 +1,7 @@
+set style enabled off
+set tdesc filename gdb/target.xml
+
+define hook-stop
+	x/16i $eip
+	i r eax ebx ecx edx edi esi ds es eflags
+end

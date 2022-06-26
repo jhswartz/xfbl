@@ -1,0 +1,60 @@
+#!/bin/sh
+
+LOAD_ADDRESS=0x01000000
+INIT_SIZE_OFFSET=0x0260
+INIT_SIZE_SIZE=4
+
+usage()
+{
+	echo "usage: generate-config KERNEL INITRAMFS CONFIG"
+}
+
+dump()
+{
+	local offset=$1
+	local count=$2
+	local file=$3
+	dd if="$file" bs=1 skip=$(($offset)) count=$(($count)) 2<&-
+}
+
+get_kernel_size()
+{
+	local kernel=$1
+	dump $INIT_SIZE_OFFSET $INIT_SIZE_SIZE "$kernel" | od -A n -t u4
+}
+
+assign_initramfs_address()
+{
+	local kernel_size=$1
+	local address=$(($LOAD_ADDRESS + $kernel_size))
+	printf ".equ INITRAMFS_ADDRESS, 0x%08x\n" $address
+}
+
+get_file_size()
+{
+	stat -c "%s" -L "$1"
+}
+
+assign_initramfs_size()
+{
+	local size=$1
+	printf ".equ INITRAMFS_SIZE,    0x%08x\n" $size
+}
+
+main()
+{
+	if [ $# -ne 3 ]
+	then
+		usage
+		exit 2
+	fi
+
+	local kernel=$1
+	local initramfs=$2
+	local config=$3
+
+	assign_initramfs_address $(get_kernel_size "$kernel") > "$config"
+	assign_initramfs_size $(get_file_size "$initramfs") >> "$config"
+}
+
+main "$@"
